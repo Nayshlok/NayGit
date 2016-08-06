@@ -2,6 +2,8 @@ package util;
 
 import java.io.File;
 
+import util.Usage;
+
 /* Help to copy the thing properly quoted for the shell safety.
  * any single quote is replaced with '\'', any exclamation point
  * is replaced with '\!', and the whole thing is enclosed in a
@@ -35,7 +37,7 @@ public class Quote implements IQuote{
 	}
 	
 	@Override
-	public void sq_quote_buf(StringBuffer buffer, String src) {
+	public void sq_quote_buf(StringBuilder buffer, String src) {
 		String toFree = null;
 		
 		if(buffer.toString().equals(src)){
@@ -59,16 +61,20 @@ public class Quote implements IQuote{
 	}
 
 	@Override
-	public void sq_quote_argv(StringBuffer buffer, String[] argv,
+	public void sq_quote_argv(StringBuilder buffer, String[] argv,
 			int maxLen) {
-		// TODO Auto-generated method stub
-		
+		for(int i = 0; i < argv.length; ++i){
+			buffer.append(' ');
+			sq_quote_buf(buffer, argv[i]);
+			if(buffer.length() > maxLen){
+				Usage.die("Too many or long arguements");
+			}
+		}
 	}
 
 	@Override
-	public void sq_quotef(StringBuffer buffer, String format, String... args) {
-		// TODO Auto-generated method stub
-		StringBuffer src = new StringBuffer();
+	public void sq_quotef(StringBuilder buffer, String format, String... args) {
+		StringBuilder src = new StringBuilder();
 		src.append(String.format(format, args));
 		
 		sq_quote_buf(buffer, src.toString());
@@ -80,7 +86,7 @@ public class Quote implements IQuote{
 		// TODO Auto-generated method stub
 		return null;
 	}
-
+	
 	@Override
 	public int sq_dequote_to_argv(String arg, StringBuilder builder, int nr,
 			int alloc) {
@@ -89,19 +95,19 @@ public class Quote implements IQuote{
 	}
 
 	@Override
-	public String unquote(StringBuffer buffer, String quoted) {
+	public String unquote(StringBuilder buffer, String quoted) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public String quote(String name, StringBuffer buffer, int no_dq) {
+	public String quote(String name, String[] buffer, int no_dq) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public void quote_two(StringBuffer buffer, String str, String str2, int i) {
+	public void quote_two(StringBuilder buffer, String str, String str2, int i) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -125,5 +131,35 @@ public class Quote implements IQuote{
 		return 0;
 	}
 
-	
+	private String sqDequoteStep(String arg, String[] next){
+		int currentNext = 0;
+		StringBuilder destination = new StringBuilder(arg);
+		String source = arg;
+		char c;
+		
+		for(int i = 1; i < arg.length(); i++){
+			c = source.charAt(i);
+			if(c != '\''){
+				destination.append(c);
+				continue;
+			}
+			switch(c){
+			case '\\':
+				if(i + 2 > arg.length())
+				{
+					return arg;
+				}
+				c = source.charAt(++i);
+				if(need_bs_quote(c) && source.charAt(++i) == '\''){
+					destination.append(c);
+				}
+			default:
+				if(currentNext > next.length){
+					return null;
+				}
+			}
+		}
+		
+		return arg;
+	}
 }
